@@ -1,0 +1,25 @@
+/* 
+COPY ALL YOUR CSS FROM THE <style> TAG HERE
+BUT REMOVE THE <style> TAGS THEMSELVES
+*/
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    color: #333;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ... Continue with all your CSS rules ... */
