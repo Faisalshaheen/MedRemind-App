@@ -31,7 +31,7 @@ jobs:
         cd MedRemindAndroid
         
         # Create main directories
-        mkdir -p app/src/main/{java/com/medremind/app,res/{layout,drawable,mipmap-anydpi-v26,values},assets}
+        mkdir -p app/src/main/{java/com/medremind/app,res/{layout,values},assets}
         mkdir -p gradle/wrapper
         
         # Copy web files to assets
@@ -42,23 +42,22 @@ jobs:
       run: |
         cd MedRemindAndroid
         
-        # Create AndroidManifest.xml
+        # Create AndroidManifest.xml (FIXED - No icon references)
         cat > app/src/main/AndroidManifest.xml << 'EOF'
         <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-            package="com.medremind.app">
+            xmlns:tools="http://schemas.android.com/tools">
             
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
             
             <application
                 android:allowBackup="true"
-                android:icon="@mipmap/ic_launcher"
                 android:label="@string/app_name"
-                android:roundIcon="@mipmap/ic_launcher_round"
                 android:supportsRtl="true"
                 android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-                android:usesCleartextTraffic="true">
+                android:usesCleartextTraffic="true"
+                tools:targetApi="31">
                 
                 <activity
                     android:name=".MainActivity"
@@ -127,10 +126,12 @@ jobs:
         }
         EOF
         
-        # Create activity_main.xml
+        # Create activity_main.xml (Simplified)
         cat > app/src/main/res/layout/activity_main.xml << 'EOF'
         <?xml version="1.0" encoding="utf-8"?>
-        <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        <androidx.constraintlayout.widget.ConstraintLayout 
+            xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
             xmlns:tools="http://schemas.android.com/tools"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -138,10 +139,14 @@ jobs:
             
             <WebView
                 android:id="@+id/webview"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
                 
-        </RelativeLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
         EOF
         
         # Create strings.xml
@@ -152,34 +157,7 @@ jobs:
         </resources>
         EOF
         
-        # Create colors.xml
-        cat > app/src/main/res/values/colors.xml << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <resources>
-            <color name="purple_200">#FFBB86FC</color>
-            <color name="purple_500">#FF6200EE</color>
-            <color name="purple_700">#FF3700B3</color>
-            <color name="teal_200">#FF03DAC5</color>
-            <color name="teal_700">#FF018786</color>
-            <color name="black">#FF000000</color>
-            <color name="white">#FFFFFFFF</color>
-            <color name="primary_color">#2196F3</color>
-        </resources>
-        EOF
-        
-        # Create themes.xml
-        cat > app/src/main/res/values/themes.xml << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
-        <resources>
-            <style name="Theme.MedRemind" parent="Theme.AppCompat.Light.NoActionBar">
-                <item name="colorPrimary">@color/primary_color</item>
-                <item name="colorPrimaryDark">@color/purple_700</item>
-                <item name="colorAccent">@color/teal_200</item>
-            </style>
-        </resources>
-        EOF
-        
-        # Create app/build.gradle
+        # Create app/build.gradle (Updated compileSdk to 33)
         cat > app/build.gradle << 'EOF'
         plugins {
             id 'com.android.application'
@@ -187,12 +165,12 @@ jobs:
         
         android {
             namespace 'com.medremind.app'
-            compileSdk 34
+            compileSdk 33
             
             defaultConfig {
                 applicationId "com.medremind.app"
                 minSdk 21
-                targetSdk 34
+                targetSdk 33
                 versionCode 1
                 versionName "1.0"
             }
@@ -225,7 +203,7 @@ jobs:
                 mavenCentral()
             }
             dependencies {
-                classpath 'com.android.tools.build:gradle:8.1.0'
+                classpath 'com.android.tools.build:gradle:7.4.2'
             }
         }
         
@@ -244,11 +222,12 @@ jobs:
         # Create settings.gradle
         echo "include ':app'" > settings.gradle
         
-        # Create gradle.properties
+        # Create gradle.properties (Added suppress warning)
         cat > gradle.properties << 'EOF'
         org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
         android.useAndroidX=true
         android.enableJetifier=true
+        android.suppressUnsupportedCompileSdk=34
         EOF
         
     - name: Setup Gradle Wrapper
@@ -256,20 +235,20 @@ jobs:
         cd MedRemindAndroid
         
         # Download Gradle wrapper script
-        wget https://raw.githubusercontent.com/gradle/gradle/master/gradlew
+        wget -q https://raw.githubusercontent.com/gradle/gradle/master/gradlew
         chmod +x gradlew
         
         # Create wrapper directory
         mkdir -p gradle/wrapper
         
         # Download Gradle wrapper JAR
-        wget https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar -O gradle/wrapper/gradle-wrapper.jar
+        wget -q https://github.com/gradle/gradle/raw/master/gradle/wrapper/gradle-wrapper.jar -O gradle/wrapper/gradle-wrapper.jar
         
         # Create gradle-wrapper.properties
         cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
-        distributionUrl=https\://services.gradle.org/distributions/gradle-8.1.1-bin.zip
+        distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-all.zip
         zipStoreBase=GRADLE_USER_HOME
         zipStorePath=wrapper/dists
         EOF
