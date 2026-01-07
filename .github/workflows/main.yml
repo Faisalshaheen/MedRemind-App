@@ -9,17 +9,17 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # Updated runner
     
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4  # Updated to v4
       
     - name: Setup Java JDK
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4  # Updated to v4
       with:
         distribution: 'temurin'
-        java-version: '11'
+        java-version: '17'
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
@@ -48,13 +48,7 @@ jobs:
         <manifest xmlns:android="http://schemas.android.com/apk/res/android"
             package="com.medremind.app">
             
-            <!-- Permissions -->
             <uses-permission android:name="android.permission.INTERNET" />
-            <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-            <uses-permission android:name="android.permission.VIBRATE" />
-            <uses-permission android:name="android.permission.WAKE_LOCK" />
-            <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
-            <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
             
             <application
                 android:allowBackup="true"
@@ -62,8 +56,7 @@ jobs:
                 android:label="@string/app_name"
                 android:roundIcon="@mipmap/ic_launcher_round"
                 android:supportsRtl="true"
-                android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-                android:usesCleartextTraffic="true">
+                android:theme="@style/Theme.AppCompat.Light.NoActionBar">
                 
                 <activity
                     android:name=".MainActivity"
@@ -77,20 +70,6 @@ jobs:
                     </intent-filter>
                 </activity>
                 
-                <!-- Splash Screen Activity -->
-                <activity
-                    android:name=".SplashActivity"
-                    android:theme="@style/SplashTheme"
-                    android:exported="true">
-                    <intent-filter>
-                        <action android:name="android.intent.action.MAIN" />
-                        <category android:name="android.intent.category.LAUNCHER" />
-                    </intent-filter>
-                </activity>
-                
-                <!-- Notification Service -->
-                <receiver android:name=".NotificationReceiver" />
-                
             </application>
             
         </manifest>
@@ -101,25 +80,16 @@ jobs:
         package com.medremind.app;
         
         import android.annotation.SuppressLint;
-        import android.content.Intent;
-        import android.os.Build;
         import android.os.Bundle;
-        import android.view.View;
-        import android.view.WindowManager;
-        import android.webkit.WebChromeClient;
         import android.webkit.WebSettings;
         import android.webkit.WebView;
         import android.webkit.WebViewClient;
-        import android.widget.ProgressBar;
         
         import androidx.appcompat.app.AppCompatActivity;
-        import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
         
         public class MainActivity extends AppCompatActivity {
             
             private WebView webView;
-            private ProgressBar progressBar;
-            private SwipeRefreshLayout swipeRefreshLayout;
             
             @SuppressLint("SetJavaScriptEnabled")
             @Override
@@ -127,84 +97,15 @@ jobs:
                 super.onCreate(savedInstanceState);
                 setContentView(R.layout.activity_main);
                 
-                // Make app fullscreen
-                getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                                   WindowManager.LayoutParams.FLAG_FULLSCREEN);
-                
-                // Hide action bar
-                if (getSupportActionBar() != null) {
-                    getSupportActionBar().hide();
-                }
-                
                 webView = findViewById(R.id.webview);
-                progressBar = findViewById(R.id.progress_bar);
-                swipeRefreshLayout = findViewById(R.id.swipe_refresh);
-                
-                // Configure WebView
                 WebSettings webSettings = webView.getSettings();
                 webSettings.setJavaScriptEnabled(true);
                 webSettings.setDomStorageEnabled(true);
-                webSettings.setDatabaseEnabled(true);
                 webSettings.setAllowFileAccess(true);
                 webSettings.setAllowContentAccess(true);
-                webSettings.setAllowFileAccessFromFileURLs(true);
-                webSettings.setAllowUniversalAccessFromFileURLs(true);
-                webSettings.setLoadWithOverviewMode(true);
-                webSettings.setUseWideViewPort(true);
-                webSettings.setBuiltInZoomControls(true);
-                webSettings.setDisplayZoomControls(false);
-                webSettings.setSupportZoom(true);
-                webSettings.setDefaultTextEncodingName("utf-8");
-                webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
                 
-                // Enable mixed content if API level < 21
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-                }
-                
-                // Set WebViewClient
-                webView.setWebViewClient(new WebViewClient() {
-                    @Override
-                    public void onPageFinished(WebView view, String url) {
-                        super.onPageFinished(view, url);
-                        progressBar.setVisibility(View.GONE);
-                        swipeRefreshLayout.setRefreshing(false);
-                        
-                        // Inject JavaScript for better integration
-                        injectJavaScript();
-                    }
-                    
-                    @Override
-                    public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                        view.loadUrl(url);
-                        return true;
-                    }
-                });
-                
-                // Set WebChromeClient for progress
-                webView.setWebChromeClient(new WebChromeClient() {
-                    public void onProgressChanged(WebView view, int progress) {
-                        progressBar.setProgress(progress);
-                    }
-                });
-                
-                // Load local HTML file
+                webView.setWebViewClient(new WebViewClient());
                 webView.loadUrl("file:///android_asset/index.html");
-                
-                // Setup pull-to-refresh
-                swipeRefreshLayout.setOnRefreshListener(() -> {
-                    webView.reload();
-                });
-            }
-            
-            private void injectJavaScript() {
-                String javaScript = "javascript:(function() {" +
-                    "window.isAndroidApp = true;" +
-                    "window.androidVersion = '" + Build.VERSION.RELEASE + "';" +
-                    "localStorage.setItem('device_type', 'android');" +
-                    "console.log('Android WebView initialized');" +
-                    "})()";
-                webView.evaluateJavascript(javaScript, null);
             }
             
             @Override
@@ -215,151 +116,23 @@ jobs:
                     super.onBackPressed();
                 }
             }
-            
-            @Override
-            protected void onResume() {
-                super.onResume();
-                webView.onResume();
-            }
-            
-            @Override
-            protected void onPause() {
-                super.onPause();
-                webView.onPause();
-            }
-            
-            @Override
-            protected void onDestroy() {
-                if (webView != null) {
-                    webView.destroy();
-                }
-                super.onDestroy();
-            }
-        }
-        EOF
-        
-        # Create SplashActivity.java
-        cat > app/src/main/java/com/medremind/app/SplashActivity.java << 'EOF'
-        package com.medremind.app;
-        
-        import android.content.Intent;
-        import android.os.Bundle;
-        import android.os.Handler;
-        
-        import androidx.appcompat.app.AppCompatActivity;
-        
-        public class SplashActivity extends AppCompatActivity {
-            
-            private static final int SPLASH_DURATION = 2000; // 2 seconds
-            
-            @Override
-            protected void onCreate(Bundle savedInstanceState) {
-                super.onCreate(savedInstanceState);
-                setContentView(R.layout.activity_splash);
-                
-                new Handler().postDelayed(() -> {
-                    // Start main activity
-                    Intent intent = new Intent(SplashActivity.this, MainActivity.class);
-                    startActivity(intent);
-                    finish();
-                }, SPLASH_DURATION);
-            }
         }
         EOF
         
         # Create activity_main.xml
         cat > app/src/main/res/layout/activity_main.xml << 'EOF'
         <?xml version="1.0" encoding="utf-8"?>
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            xmlns:android="http://schemas.android.com/apk/res/android"
-            xmlns:app="http://schemas.android.com/apk/res-auto"
-            android:id="@+id/swipe_refresh"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-            
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-                
-                <WebView
-                    android:id="@+id/webview"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent" />
-                
-                <ProgressBar
-                    android:id="@+id/progress_bar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="4dp"
-                    android:layout_alignTop="@id/webview"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressTint="#2196F3" />
-                    
-            </RelativeLayout>
-            
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
-        EOF
-        
-        # Create activity_splash.xml
-        cat > app/src/main/res/layout/activity_splash.xml << 'EOF'
-        <?xml version="1.0" encoding="utf-8"?>
         <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:tools="http://schemas.android.com/tools"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@color/splash_background">
+            tools:context=".MainActivity">
             
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
-                android:orientation="vertical"
-                android:gravity="center">
+            <WebView
+                android:id="@+id/webview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
                 
-                <ImageView
-                    android:layout_width="120dp"
-                    android:layout_height="120dp"
-                    android:src="@drawable/ic_launcher_foreground"
-                    android:contentDescription="App Logo" />
-                
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/app_name"
-                    android:textColor="@android:color/white"
-                    android:textSize="32sp"
-                    android:textStyle="bold"
-                    android:layout_marginTop="20dp"
-                    android:fontFamily="sans-serif-medium" />
-                
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Never miss a dose again"
-                    android:textColor="@android:color/white"
-                    android:textSize="16sp"
-                    android:layout_marginTop="10dp"
-                    android:alpha="0.8" />
-                
-                <ProgressBar
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="40dp"
-                    android:indeterminateTint="@android:color/white" />
-                
-            </LinearLayout>
-            
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Version 1.0"
-                android:textColor="@android:color/white"
-                android:textSize="12sp"
-                android:alpha="0.6"
-                android:layout_alignParentBottom="true"
-                android:layout_centerHorizontal="true"
-                android:layout_marginBottom="20dp" />
-            
         </RelativeLayout>
         EOF
         
@@ -368,11 +141,6 @@ jobs:
         <?xml version="1.0" encoding="utf-8"?>
         <resources>
             <string name="app_name">MedRemind</string>
-            <string name="loading">Loading...</string>
-            <string name="error_loading">Error loading content</string>
-            <string name="try_again">Try Again</string>
-            <string name="no_internet">No Internet Connection</string>
-            <string name="check_connection">Please check your internet connection</string>
         </resources>
         EOF
         
@@ -387,10 +155,6 @@ jobs:
             <color name="teal_700">#FF018786</color>
             <color name="black">#FF000000</color>
             <color name="white">#FFFFFFFF</color>
-            <color name="splash_background">#2196F3</color>
-            <color name="primary_color">#2196F3</color>
-            <color name="primary_dark">#1976D2</color>
-            <color name="accent_color">#FF4081</color>
         </resources>
         EOF
         
@@ -399,23 +163,14 @@ jobs:
         <?xml version="1.0" encoding="utf-8"?>
         <resources>
             <style name="Theme.MedRemind" parent="Theme.AppCompat.Light.NoActionBar">
-                <item name="colorPrimary">@color/primary_color</item>
-                <item name="colorPrimaryDark">@color/primary_dark</item>
-                <item name="colorAccent">@color/accent_color</item>
-                <item name="android:windowBackground">@color/white</item>
-                <item name="android:statusBarColor">@color/primary_dark</item>
-                <item name="android:navigationBarColor">@color/primary_dark</item>
-            </style>
-            
-            <style name="SplashTheme" parent="Theme.AppCompat.Light.NoActionBar">
-                <item name="android:windowBackground">@color/splash_background</item>
-                <item name="android:statusBarColor">@color/splash_background</item>
-                <item name="android:navigationBarColor">@color/splash_background</item>
+                <item name="colorPrimary">@color/purple_500</item>
+                <item name="colorPrimaryDark">@color/purple_700</item>
+                <item name="colorAccent">@color/teal_200</item>
             </style>
         </resources>
         EOF
         
-        # Create app/build.gradle
+        # Create app/build.gradle (Simplified version)
         cat > app/build.gradle << 'EOF'
         plugins {
             id 'com.android.application'
@@ -423,25 +178,19 @@ jobs:
         
         android {
             namespace 'com.medremind.app'
-            compileSdk 33
+            compileSdk 34
             
             defaultConfig {
                 applicationId "com.medremind.app"
                 minSdk 21
-                targetSdk 33
+                targetSdk 34
                 versionCode 1
                 versionName "1.0"
-                
-                testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
             }
             
             buildTypes {
                 release {
                     minifyEnabled false
-                    proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-                }
-                debug {
-                    debuggable true
                 }
             }
             
@@ -449,30 +198,17 @@ jobs:
                 sourceCompatibility JavaVersion.VERSION_1_8
                 targetCompatibility JavaVersion.VERSION_1_8
             }
-            
-            buildFeatures {
-                viewBinding true
-            }
         }
         
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.9.0'
-            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-            implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-            
-            testImplementation 'junit:junit:4.13.2'
-            androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-            androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
         }
         EOF
         
         # Create project build.gradle
         cat > build.gradle << 'EOF'
-        // Top-level build file where you can add configuration options common to all sub-projects/modules.
-        
         plugins {
-            id 'com.android.application' version '7.4.2' apply false
+            id 'com.android.application' version '8.1.0' apply false
         }
         
         task clean(type: Delete) {
@@ -481,25 +217,7 @@ jobs:
         EOF
         
         # Create settings.gradle
-        cat > settings.gradle << 'EOF'
-        pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
-        
-        rootProject.name = "MedRemind"
-        include ':app'
-        EOF
+        echo "include ':app'" > settings.gradle
         
         # Create gradle.properties
         cat > gradle.properties << 'EOF'
@@ -508,69 +226,37 @@ jobs:
         android.enableJetifier=true
         EOF
         
-        # Create gradle wrapper files
+        # Create gradle wrapper
         cat > gradle/wrapper/gradle-wrapper.properties << 'EOF'
         distributionBase=GRADLE_USER_HOME
         distributionPath=wrapper/dists
-        distributionUrl=https\://services.gradle.org/distributions/gradle-7.5-bin.zip
+        distributionUrl=https\://services.gradle.org/distributions/gradle-8.1.1-bin.zip
         zipStoreBase=GRADLE_USER_HOME
         zipStorePath=wrapper/dists
         EOF
         
+    - name: Setup Gradle
+      run: |
+        cd MedRemindAndroid
         # Download gradle wrapper
-        curl -L https://github.com/gradle/gradle/releases/download/v7.5.1/gradle-7.5.1-bin.zip -o gradle-wrapper.zip
+        wget https://raw.githubusercontent.com/gradle/gradle/master/gradlew
+        chmod +x gradlew
         
     - name: Build APK
       run: |
         cd MedRemindAndroid
-        # Make gradlew executable
-        wget https://raw.githubusercontent.com/gradle/gradle/master/gradlew
-        chmod +x gradlew
-        
-        # Build the APK
         ./gradlew assembleDebug
         
     - name: Upload APK Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated to v4
       with:
         name: MedRemind-APK
         path: MedRemindAndroid/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 7
         
     - name: Upload Source Code
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # Updated to v4
       with:
         name: Android-Source-Code
         path: MedRemindAndroid/
         retention-days: 7
-        
-    - name: Create Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: v1.0.${{ github.run_number }}
-        name: MedRemind v1.0.${{ github.run_number }}
-        body: |
-          ## 🚀 MedRemind Android App
-          
-          ### What's New
-          - Automated build from HTML
-          - WebView based application
-          - Full medication tracking
-          
-          ### Download
-          - APK File: app-debug.apk
-          - Source Code: Android-Source-Code.zip
-          
-          ### Installation
-          1. Download the APK
-          2. Enable "Install from unknown sources"
-          3. Install and open
-          
-          ### Build Info
-          - Build Number: ${{ github.run_number }}
-          - Build Date: ${{ github.event.head_commit.timestamp }}
-        draft: false
-        prerelease: false
-        files: |
-          MedRemindAndroid/app/build/outputs/apk/debug/app-debug.apk
